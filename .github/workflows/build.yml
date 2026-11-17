@@ -1,0 +1,44 @@
+name: Build Vega Productions EQ
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  windows:
+    name: Windows VST3
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Vega Productions EQ
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64 -DVEGA_TESTS=ON
+      - name: Build Vega Productions EQ
+        run: cmake --build build --config Release --target VegaEQ_VST3 VegaEqTest
+      - name: DSP self-test
+        run: build\VegaEqTest_artefacts\Release\VegaEqTest.exe
+      - name: Package Vega Productions EQ
+        shell: pwsh
+        run: Compress-Archive -Path "build/VegaEQ_artefacts/Release/VST3/Vega Productions EQ.vst3" -DestinationPath VegaProductions-EQ-VST3-win64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VegaProductions-EQ-Windows-VST3
+          path: VegaProductions-EQ-VST3-win64.zip
+
+  macos:
+    name: macOS VST3 + AU (Universal)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Vega Productions EQ
+        run: cmake -B build -G Xcode -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+      - name: Build Vega Productions EQ
+        run: cmake --build build --config Release --target VegaEQ_VST3 VegaEQ_AU --parallel
+      - name: Sign and package Vega Productions EQ
+        run: |
+          codesign --force --deep -s - "build/VegaEQ_artefacts/Release/VST3/Vega Productions EQ.vst3"
+          codesign --force --deep -s - "build/VegaEQ_artefacts/Release/AU/Vega Productions EQ.component"
+          mkdir -p dist-VegaEQ
+          cp -R "build/VegaEQ_artefacts/Release/VST3/Vega Productions EQ.vst3" "build/VegaEQ_artefacts/Release/AU/Vega Productions EQ.component" dist-VegaEQ/
+          cd dist-VegaEQ && zip -r -y ../VegaProductions-EQ-macOS.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VegaProductions-EQ-macOS-VST3-AU
+          path: VegaProductions-EQ-macOS.zip
