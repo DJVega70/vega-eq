@@ -183,7 +183,14 @@ public:
                 auto r = juce::Rectangle<float> ((float) x, (float) y, (float) w, (float) h);
                 g.setColour (juce::Colour (0xff151515)); g.fillRoundedRectangle (r, 2.0f);
                 g.setColour (accentDim.withAlpha (s.isEnabled() ? 0.9f : 0.4f));
-                g.fillRoundedRectangle (r.withRight (sliderPos), 2.0f);
+                if (s.getMinimum() < 0.0 && s.getMaximum() > 0.0)   // bipolar: fill from zero
+                {
+                    const float zx = (float) x + (float) w * (float) s.valueToProportionOfLength (0.0);
+                    g.fillRect (juce::Rectangle<float>::leftTopRightBottom (std::min (zx, sliderPos), r.getY() + 1, std::max (zx, sliderPos), r.getBottom() - 1));
+                    g.setColour (textDim.withAlpha (0.5f)); g.drawVerticalLine ((int) zx, r.getY() + 2, r.getBottom() - 2);
+                }
+                else
+                    g.fillRoundedRectangle (r.withRight (sliderPos), 2.0f);
                 g.setColour (line); g.drawRoundedRectangle (r.reduced (0.5f), 2.0f, 1.0f);
                 return;
             }
